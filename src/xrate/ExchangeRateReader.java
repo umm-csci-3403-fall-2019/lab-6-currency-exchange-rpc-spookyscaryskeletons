@@ -4,12 +4,16 @@ import java.io.*;
 import java.net.URL;
 import java.util.Properties;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 /**
  * Provide access to basic currency exchange rate services.
  */
 public class ExchangeRateReader {
 
     private String accessKey;
+    private String baseURL;
 
     /**
      * Construct an exchange rate reader using the given base URL. All requests
@@ -31,6 +35,7 @@ public class ExchangeRateReader {
          */
 
         // TODO Your code here
+	this.baseURL = baseURL;
 
         // Reads the access keys from `etc/access_keys.properties`
         readAccessKeys();
@@ -83,15 +88,23 @@ public class ExchangeRateReader {
      */
     public float getExchangeRate(String currencyCode, int year, int month, int day) throws IOException {
         // TODO Your code here
-
-        // Remove the next line when you've implemented this method.
-        throw new UnsupportedOperationException();
+	String requestURL = baseURL;
+	requestURL += ("convert?access_key="+accessKey);
+	requestURL += ("&from="+currencyCode);
+	requestURL += ("&to=EUR");
+	requestURL += ("&amount=1");
+	requestURL += ("&date="+year+"-"+month+"-"+day);
+	URL url = new URL(requestURL);
+	InputStream inputstream = url.openStream();
+	Reader fixerReader = new Reader(inputstream);
+	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
+	return getRate(fixerJson, "");
     }
 
     /**
      * Get the exchange rate of the first specified currency against the second
      * on the specified date.
-     * 
+     * .append
      * @param fromCurrency
      *            the currency code we're exchanging *from*
      * @param toCurrency
@@ -109,8 +122,21 @@ public class ExchangeRateReader {
             String fromCurrency, String toCurrency,
             int year, int month, int day) throws IOException {
         // TODO Your code here
+	String requestURL = baseURL;
+	requestURL += ("convert?access_key="+accessKey);
+	requestURL += ("&from="+fromCurrency);
+	requestURL += ("&to="+toCurrency);
+	requestURL += ("&amount=1");
+	requestURL += ("&date="+year+"-"+month+"-"+day);
+	URL url = new URL(requestURL);
+	InputStream inputstream = url.openStream();
+	Reader fixerReader = new Reader(inputstream);
+	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
+	return getRate(fixerJson, "");
 
-        // Remove the next line when you've implemented this method.
-        throw new UnsupportedOperationException();
+    }
+
+    private float getRate(JsonObject ratesInfo, String currency) {
+	return ratesInfo.getJSONObject("info").getFloat("rate");
     }
 }
