@@ -35,7 +35,7 @@ public class ExchangeRateReader {
          */
 
         // TODO Your code here
-	this.baseURL = baseURL;
+	    this.baseURL = baseURL;
 
         // Reads the access keys from `etc/access_keys.properties`
         readAccessKeys();
@@ -89,16 +89,21 @@ public class ExchangeRateReader {
     public float getExchangeRate(String currencyCode, int year, int month, int day) throws IOException {
         // TODO Your code here
 	String requestURL = baseURL;
-	requestURL += ("convert?access_key="+accessKey);
-	requestURL += ("&from="+currencyCode);
-	requestURL += ("&to=EUR");
-	requestURL += ("&amount=1");
-	requestURL += ("&date="+year+"-"+month+"-"+day);
+	String monthString = Integer.toString(month);
+	String dayString = Integer.toString(day);
+	if(monthString.length()==1) {
+	    monthString = "0"+monthString;
+    }
+	if(dayString.length()==1) {
+            dayString = "0"+dayString;
+	}
+	requestURL += (year+"-"+monthString+"-"+dayString);
+	requestURL += ("?access_key="+accessKey);
 	URL url = new URL(requestURL);
 	InputStream inputstream = url.openStream();
-	Reader fixerReader = new Reader(inputstream);
+	Reader fixerReader = new InputStreamReader(inputstream);
 	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
-	return getRate(fixerJson, "");
+	return getRate(fixerJson, "EUR", currencyCode);
     }
 
     /**
@@ -123,20 +128,30 @@ public class ExchangeRateReader {
             int year, int month, int day) throws IOException {
         // TODO Your code here
 	String requestURL = baseURL;
-	requestURL += ("convert?access_key="+accessKey);
-	requestURL += ("&from="+fromCurrency);
-	requestURL += ("&to="+toCurrency);
-	requestURL += ("&amount=1");
-	requestURL += ("&date="+year+"-"+month+"-"+day);
+	String monthString = Integer.toString(month);
+	String dayString = Integer.toString(day);
+	if(monthString.length()==1) {
+	    monthString = "0"+monthString;
+	}
+	if(dayString.length()==1) {
+	    dayString = "0"+dayString;
+	}
+	requestURL += (year+"-"+monthString+"-"+dayString);
+	requestURL += ("?access_key="+accessKey);
 	URL url = new URL(requestURL);
 	InputStream inputstream = url.openStream();
-	Reader fixerReader = new Reader(inputstream);
+	Reader fixerReader = new InputStreamReader(inputstream);
 	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
-	return getRate(fixerJson, "");
-
+	return getRate(fixerJson, fromCurrency, toCurrency);
     }
 
-    private float getRate(JsonObject ratesInfo, String currency) {
-	return ratesInfo.getJSONObject("info").getFloat("rate");
+    private float getRate(JsonObject ratesInfo, String fromCurrency, String toCurrency) {
+        float fromToEuro = ratesInfo.getAsJsonObject("rates").get(fromCurrency).getAsFloat();
+        float toToEuro = ratesInfo.getAsJsonObject("rates").get(toCurrency).getAsFloat();
+        if(fromCurrency == "EUR"){
+            return toToEuro;
+        } else {
+            return fromToEuro / toToEuro;
+        }
     }
 }
