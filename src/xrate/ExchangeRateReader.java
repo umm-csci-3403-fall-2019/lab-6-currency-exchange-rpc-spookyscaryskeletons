@@ -27,14 +27,6 @@ public class ExchangeRateReader {
      *            the base URL for requests
      */
     public ExchangeRateReader(String baseURL) throws IOException {
-        /*
-         * DON'T DO MUCH HERE!
-         * People often try to do a lot here, but the action is actually in
-         * the two methods below. All you need to do here is store the
-         * provided `baseURL` in a field so it will be accessible later.
-         */
-
-        // TODO Your code here
 	    this.baseURL = baseURL;
 
         // Reads the access keys from `etc/access_keys.properties`
@@ -86,24 +78,10 @@ public class ExchangeRateReader {
      * @return the desired exchange rate
      * @throws IOException if there are problems reading from the server
      */
-    public float getExchangeRate(String currencyCode, int year, int month, int day) throws IOException {
-        // TODO Your code here
-	String requestURL = baseURL;
-	String monthString = Integer.toString(month);
-	String dayString = Integer.toString(day);
-	if(monthString.length()==1) {
-	    monthString = "0"+monthString;
-    }
-	if(dayString.length()==1) {
-            dayString = "0"+dayString;
-	}
-	requestURL += (year+"-"+monthString+"-"+dayString);
-	requestURL += ("?access_key="+accessKey);
-	URL url = new URL(requestURL);
-	InputStream inputstream = url.openStream();
-	Reader fixerReader = new InputStreamReader(inputstream);
-	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
-	return getRate(fixerJson, "EUR", currencyCode);
+    public float getExchangeRate(String currencyCode, int year, int month, int day) throws IOException { //Here, we handle the case where we're given only one currency
+        //The bulk of the work is done by our helper functions
+	    JsonObject fixerJson = getExchangeRateData(year, month, day);
+	    return getRate(fixerJson, currencyCode, "EUR");
     }
 
     /**
@@ -123,35 +101,47 @@ public class ExchangeRateReader {
      * @return the desired exchange rate
      * @throws IOException if there are problems reading from the server
      */
-    public float getExchangeRate(
-            String fromCurrency, String toCurrency,
-            int year, int month, int day) throws IOException {
-        // TODO Your code here
-	String requestURL = baseURL;
-	String monthString = Integer.toString(month);
-	String dayString = Integer.toString(day);
-	if(monthString.length()==1) {
-	    monthString = "0"+monthString;
-	}
-	if(dayString.length()==1) {
-	    dayString = "0"+dayString;
-	}
-	requestURL += (year+"-"+monthString+"-"+dayString);
-	requestURL += ("?access_key="+accessKey);
-	URL url = new URL(requestURL);
-	InputStream inputstream = url.openStream();
-	Reader fixerReader = new InputStreamReader(inputstream);
-	JsonObject fixerJson = new JsonParser().parse(fixerReader).getAsJsonObject();
-	return getRate(fixerJson, fromCurrency, toCurrency);
+    public float getExchangeRate(String fromCurrency, String toCurrency, int year, int month, int day) throws IOException { //Here, we handle the case where we're given two currencies
+        //The bulk of the work is done by our helper functions
+	    JsonObject fixerJson = getExchangeRateData(year, month, day);
+	    return getRate(fixerJson, fromCurrency, toCurrency);
+    }
+
+    private JsonObject getExchangeRateData(int year, int month, int day) throws IOException { //This function builds the URL we get the data from, reads the data from that URL, and returns that data as a JSON object
+        String requestURL = baseURL;
+        requestURL += buildDateString(year, month, day);
+        requestURL += ("?access_key="+accessKey);
+        URL url = new URL(requestURL);
+        InputStream inputStream = url.openStream();
+        InputStreamReader fixerReader = new InputStreamReader(inputStream);
+        return (new JsonParser().parse(fixerReader).getAsJsonObject());
+    }
+
+    /*private JsonObject getExchangeRateData(String dateString) throws IOException { //a slightly different implementation that we don't use
+        String requestURL = baseURL;
+        requestURL += dateString;
+        requestURL += ("?access_key="+accessKey);
+        URL url = new URL(requestURL);
+        InputStream inputStream = url.openStream();
+        InputStreamReader fixerReader = new InputStreamReader(inputStream);
+        return (new JsonParser().parse(fixerReader).getAsJsonObject());
+    }*/
+
+    private String buildDateString(int year, int month, int day) { //This function does the work of turning our year/month/day inputs into the format the API wants
+        String monthString = Integer.toString(month);
+        String dayString = Integer.toString(day);
+        if(monthString.length()==1) {
+            monthString = "0"+monthString;
+        }
+        if(dayString.length()==1) {
+            dayString = "0"+dayString;
+        }
+        return year+"-"+monthString+"-"+dayString;
     }
 
     private float getRate(JsonObject ratesInfo, String fromCurrency, String toCurrency) {
         float fromToEuro = ratesInfo.getAsJsonObject("rates").get(fromCurrency).getAsFloat();
         float toToEuro = ratesInfo.getAsJsonObject("rates").get(toCurrency).getAsFloat();
-        if(fromCurrency == "EUR"){
-            return toToEuro;
-        } else {
-            return fromToEuro / toToEuro;
-        }
+        return fromToEuro / toToEuro;
     }
 }
